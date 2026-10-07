@@ -9,6 +9,7 @@ from app.rag.vector_store import reset_db, delete_document, list_documents
 from app.rules.manager import get_business_rules, save_business_rules
 from app.llm.generator import reset_llm, get_backend
 from app.llm.settings import save_model_settings, normalize_model_path, DEFAULT_MODEL_PATH, DEFAULT_MODEL_TYPE
+from app.tcbs.client import TCBSMCPClient, TCBSMCPError
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,30 @@ def update_model_settings(payload: dict = Body(...)):
 
 
 # --- BUSINESS RULES ENDPOINTS ---
+@router.get("/tcbs/status")
+def tcbs_status():
+    """Return local TCBS MCP configuration status without exposing credentials."""
+    client = TCBSMCPClient()
+    return {
+        "enabled": os.getenv("TCBS_MCP_ENABLED", "true").lower() in {"1", "true", "yes", "on"},
+        "configured": client.configured,
+        "url": client.url,
+        "auth": "oauth2_access_token" if client.configured else "not_configured",
+    }
+
+
+@router.get("/tcbs/tools")
+def tcbs_tools():
+    """Discover the currently exposed tools from the official TCBS MCP server."""
+    client = TCBSMCPClient()
+    if not client.configured:
+        raise HTTPException(status_code=401, detail="TCBS_MCP_ACCESS_TOKEN is not configured.")
+    try:
+        return {"tools": client.list_tools(), "count": len(client.list_tools())}
+    except TCBSMCPError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @router.get("/rules")
 def get_rules():
     """

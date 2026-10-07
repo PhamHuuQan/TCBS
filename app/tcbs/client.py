@@ -26,6 +26,12 @@ class TCBSMCPClient:
     def __init__(self, url: str | None = None, access_token: str | None = None, timeout: int | None = None):
         self.url = (url or os.getenv("TCBS_MCP_URL", DEFAULT_URL)).strip()
         self.access_token = (access_token or os.getenv("TCBS_MCP_ACCESS_TOKEN", "")).strip()
+        if not self.access_token:
+            try:
+                from app.tcbs.oauth import access_token as oauth_access_token
+                self.access_token = (oauth_access_token() or "").strip()
+            except Exception:
+                self.access_token = ""
         self.timeout = int(timeout or os.getenv("TCBS_MCP_TIMEOUT", "30"))
         self.session = requests.Session()
         self.session.headers.update({

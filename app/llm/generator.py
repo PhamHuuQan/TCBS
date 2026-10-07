@@ -279,7 +279,8 @@ def generate_answer(query: str, retrieved_chunks: list[dict], user_document_text
                 query,
                 retrieved_chunks,
                 user_document_text=user_document_text,
-                user_document_name=user_document_name
+                user_document_name=user_document_name,
+                tcbs_context=tcbs_context
             )
             stop_tokens = [
                 "<end_of_turn>",
@@ -305,7 +306,8 @@ def generate_answer(query: str, retrieved_chunks: list[dict], user_document_text
                 query,
                 retrieved_chunks,
                 user_document_text=user_document_text,
-                user_document_name=user_document_name
+                user_document_name=user_document_name,
+                tcbs_context=tcbs_context
             )
             stop_tokens = ["<end_of_turn>", "<start_of_turn>", "</s>"]
             raw_answer = llm(prompt, max_new_tokens=max_tokens, temperature=temperature, stop=stop_tokens)

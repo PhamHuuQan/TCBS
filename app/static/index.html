@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TDnook — Minimalist Paper Reader</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,300;0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=20261005_04">
+</head>
+
+<body class="theme-sepia">
+    <!-- Full-bleed Paper Canvas -->
+    <div class="kindle-app">
+        <!-- Top App Bar -->
+        <header class="app-header">
+            <div class="header-brand">
+                <button class="icon-btn" id="btn-toggle-sidebar" onclick="toggleSidebar()" title="Toggle Sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                    </svg>
+                </button>
+                <div class="brand-text">
+                    <span class="brand-name">TDnook</span>
+                    <span class="brand-tag" data-i18n="brandTag">Trí Tuệ Tài Liệu</span>
+                </div>
+            </div>
+
+            <!-- Portal Switcher -->
+            <nav class="portal-nav">
+                <button class="nav-item active" id="nav-user" onclick="switchPortal('user')" data-i18n="navUser">Đọc Sách & Trò Chuyện</button>
+                <button class="nav-item" id="nav-admin" onclick="switchPortal('admin')" data-i18n="navAdmin">Quy Định Doanh Nghiệp</button>
+            </nav>
+
+            <!-- Quick Controls -->
+            <div class="header-actions">
+                <!-- Minimalist Language Switcher -->
+                <div class="lang-switcher" id="lang-switcher" title="Language / Ngôn ngữ">
+                    <button type="button" class="lang-btn" id="lang-btn-en" onclick="setLanguage('en')">EN</button>
+                    <button type="button" class="lang-btn active" id="lang-btn-vi" onclick="setLanguage('vi')">VI</button>
+                </div>
+
+                <select id="texture-selector" class="texture-select" onchange="onTextureChange()"
+                    title="Chọn chất liệu giấy">
+                    <option value="texture-kindle" data-i18n="textureKindle">Kindle Micro-Grain</option>
+                    <option value="texture-parchment" data-i18n="textureParchment">Book Parchment (Giấy Dó)</option>
+                    <option value="texture-linen" data-i18n="textureLinen">Woven Linen (Giấy Sợi Vải)</option>
+                    <option value="texture-smooth" data-i18n="textureSmooth">Smooth Matte</option>
+                </select>
+
+                <div class="tone-picker">
+                    <button class="tone-btn tone-sepia active" onclick="setPaperTheme('theme-sepia')"
+                        title="Sepia Warm Paper"></button>
+                    <button class="tone-btn tone-eink" onclick="setPaperTheme('theme-eink')"
+                        title="E-Ink Neutral Paper"></button>
+                    <button class="tone-btn tone-dark" onclick="setPaperTheme('theme-dark')"
+                        title="Dark Ink Mode"></button>
+                </div>
+                <button class="action-btn" id="btn-fullscreen" onclick="toggleFullScreen()" title="Full Screen Mode">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+        </header>
+
+        <!-- Main Workspace Area -->
+        <div class="app-main">
+            <!-- ================= USER PORTAL ================= -->
+            <section id="portal-user" class="portal-view active">
+                <div class="workspace-layout">
+                    <!-- Collapsible Sidebar / Margin -->
+                    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+                    <aside class="sidebar-margin" id="sidebar-margin">
+                        <!-- 1. Conversation Management -->
+                        <div class="sidebar-section">
+                            <button class="btn btn-primary btn-block btn-new-chat" id="btn-new-chat"
+                                onclick="createNewConversation()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span data-i18n="newChat">Cuộc hội thoại mới</span>
+                            </button>
+
+                            <div class="section-title-row" style="margin-top: 14px;">
+                                <h3 class="section-title" data-i18n="chatHistory">Lịch sử hội thoại</h3>
+                                <span class="badge" id="conv-count-badge">0</span>
+                            </div>
+                            <div class="conversation-list" id="conversation-list">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+                        </div>
+
+                        <hr class="sidebar-divider">
+
+                        <!-- 2. User Attached File (Session Scope / Not stored permanently) -->
+                        <div class="sidebar-section">
+                            <div class="section-title-row">
+                                <h3 class="section-title" data-i18n="attachedTitle">Tài liệu đính kèm (Phiên)</h3>
+                                <span class="badge badge-subtle" data-i18n="attachedBadge">File Người Dùng</span>
+                            </div>
+                            <p class="section-desc" data-i18n="attachedDesc">Tải lên PDF, Ảnh (OCR), Word, Excel để tra cứu tạm thời trong phiên này.</p>
+
+                            <div id="attached-doc-info" class="attached-doc-container" style="display: none;">
+                                <div class="attached-chip">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                    <span class="attached-name" id="attached-file-name">filename.pdf</span>
+                                    <button class="btn-remove-chip" onclick="removeAttachedUserDoc()"
+                                        title="Remove file">×</button>
+                                </div>
+                            </div>
+
+                            <div class="dropzone" id="user-dropzone">
+                                <input type="file" id="user-file-input"
+                                    accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.xls,.csv,.txt,.md">
+                                <label for="user-file-input" class="dropzone-box">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                    <span class="dropzone-label" id="user-chosen-file" data-i18n="chooseFile">Chọn tài liệu đính kèm</span>
+                                </label>
+                            </div>
+                            <button class="btn btn-outline btn-block" id="btn-upload-user" onclick="handleUserUpload()"
+                                style="margin-top: 8px;" data-i18n="attachBtn">Đính Kèm & Phân Tích</button>
+                            <div id="upload-status" class="alert-box"></div>
+                        </div>
+
+                        <hr class="sidebar-divider">
+
+                        <!-- 3. System Knowledge Scope (Admin Repository) -->
+                        <div class="sidebar-section">
+                            <div class="section-title-row">
+                                <h3 class="section-title" data-i18n="scopeTitle">Kho Kiến Thức Hệ Thống</h3>
+                                <span class="badge" id="doc-count-badge">0</span>
+                            </div>
+                            <p class="section-desc" data-i18n="scopeDesc">Đối chiếu trực tiếp với kho dữ liệu mẫu của hệ thống</p>
+                            <select id="user-doc-select" class="select-box" onchange="onScopeChange()">
+                                <option value="All Documents" data-i18n="allSystemKnowledge">Toàn bộ tài liệu hệ thống</option>
+                            </select>
+                            <div class="active-scope-tag" id="scope-indicator">Phạm vi: Toàn bộ tài liệu hệ thống</div>
+                        </div>
+                    </aside>
+
+                    <!-- Reading & Q&A Canvas -->
+                    <main class="reading-canvas">
+                        <div class="canvas-scroll" id="canvas-scroll">
+                            <div class="chat-thread" id="chat-thread">
+                                <div class="chat-item bot-turn">
+                                    <div class="item-header">
+                                        <span class="role-badge" id="welcome-role-badge">Trợ lý TDnook</span>
+                                        <span class="time-stamp">TDnook Reader</span>
+                                    </div>
+                                    <div class="item-body">
+                                        <p id="welcome-message-text">Chào bạn. Hãy đính kèm tài liệu cá nhân để đối chiếu với kiến thức hệ thống hoặc đặt câu hỏi trực tiếp. Tôi sẽ trả lời ngắn gọn, chuẩn mực theo đúng ngôn ngữ của bạn.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sticky Notebook Prompt Bar -->
+                        <div class="prompt-bar-container">
+                            <div class="quick-prompts" id="quick-prompts">
+                                <button class="chip-btn" id="chip-prompt-1"
+                                    onclick="triggerQuickPrompt(1)" data-i18n="quickSummarize">Tóm tắt tài liệu</button>
+                                <button class="chip-btn" id="chip-prompt-2"
+                                    onclick="triggerQuickPrompt(2)" data-i18n="quickSkills">Kinh nghiệm & Kỹ năng</button>
+                                <button class="chip-btn" id="chip-prompt-3"
+                                    onclick="triggerQuickPrompt(3)" data-i18n="quickPolicy">Chính sách quan trọng</button>
+                            </div>
+                            <form id="chat-form" class="prompt-form" onsubmit="handleSendQuery(event)">
+                                <input type="text" id="query-input" placeholder="Đặt câu hỏi về tài liệu..."
+                                    autocomplete="off">
+                                <button type="submit" id="btn-submit" class="btn btn-primary submit-icon-btn"
+                                    title="Gửi câu hỏi">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </main>
+                </div>
+            </section>
+
+            <!-- ================= ADMIN PORTAL ================= -->
+            <section id="portal-admin" class="portal-view">
+                <div class="admin-workspace">
+                    <div class="admin-nav-bar">
+                        <button class="subnav-item active" onclick="switchAdminTab('rules')" data-i18n="adminTabRules">1. Quy Định & Guardrails</button>
+                        <button class="subnav-item" onclick="switchAdminTab('ingest')" data-i18n="adminTabIngest">2. Nạp Tài Liệu Mẫu</button>
+                        <button class="subnav-item" onclick="switchAdminTab('manage')" data-i18n="adminTabManage">3. Kho Dữ Liệu Thư Viện</button>
+                    </div>
+
+                    <!-- Subtab 1: Business Rules & Guardrails -->
+                    <div id="admintab-rules" class="subtab-pane active">
+                        <div class="card-grid">
+                            <!-- LLM Model Path & Storage Configuration -->
+                            <div class="admin-card full-width model-config-card">
+                                <div class="card-header-flex">
+                                    <div>
+                                        <h4 class="card-heading" data-i18n="modelConfigTitle">Cấu Hình Nơi Lưu Trữ Mô Hình LLM</h4>
+                                        <p class="card-subtext" data-i18n="modelConfigSub">Đường dẫn thư mục MLX (macOS) hoặc file .gguf (Windows). Hệ thống nạp trực tiếp vào RAM/GPU.</p>
+                                    </div>
+                                    <span id="model-status-badge" class="badge">Đang kiểm tra...</span>
+                                </div>
+                                <div class="model-config-form">
+                                    <div class="form-row">
+                                        <div class="form-field flex-grow">
+                                            <label for="setting-model-path" class="form-label" data-i18n="modelPathLabel">Đường dẫn mô hình (LOCAL_MODEL_PATH):</label>
+                                            <div class="model-path-control">
+                                            <input type="text" id="setting-model-path" class="text-input" style="font-family: var(--font-mono); font-size: 0.8rem;" placeholder="/Users/.../model or C:\models\model.gguf">
+                                                <button type="button" class="btn" onclick="openModelBrowser()" data-i18n="browseModel">Chọn…</button>
+                                            </div>
+                                        </div>
+                                        <div class="form-field width-220">
+                                            <label for="setting-model-type" class="form-label" data-i18n="modelTypeLabel">Loại kiến trúc (Model Type):</label>
+                                            <select id="setting-model-type" class="select-box">
+                                                <option value="qwen">Qwen (Qwen2.5 / 3.5)</option>
+                                                <option value="gemma">Gemma (Gemma 2 / 4)</option>
+                                                <option value="llama">Llama (Llama 3 / 3.1)</option>
+                                                <option value="mistral">Mistral</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="model-quick-presets">
+                                        <span class="preset-label" data-i18n="quickPresetsLabel">Đường dẫn mẫu:</span>
+                                        <button type="button" class="btn-preset" onclick="fillPresetPath('mac-mlx')">macOS (MLX Folder)</button>
+                                        <button type="button" class="btn-preset" onclick="fillPresetPath('win-gguf')">Windows (GGUF File)</button>
+                                    </div>
+                                    <div class="model-action-row">
+                                        <button type="button" class="btn btn-primary" id="save-model-button" onclick="saveModelSettings()" data-i18n="saveModelBtn">Lưu Cấu Hình Mô Hình</button>
+                                        <span role="status" aria-live="polite" id="model-save-status" class="status-indicator"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="admin-card full-width">
+                                <div class="switch-row">
+                                    <div>
+                                        <h4 class="card-heading" data-i18n="strictModeTitle">Chế độ Tuân Thủ Tài Liệu Tuyệt Đối (Strict Mode)</h4>
+                                        <p class="card-subtext" data-i18n="strictModeSub">Chỉ trả lời dựa trên tài liệu được cung cấp. Từ chối câu hỏi ngoài phạm vi.</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="rule-strict-mode" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="admin-card">
+                                <h4 class="card-heading" data-i18n="systemRoleTitle">Vai trò hệ thống (System Role Prompt)</h4>
+                                <p class="card-subtext" data-i18n="systemRoleSub">Quy định nhân cách, giọng văn và hành vi của trợ lý.</p>
+                                <input type="text" id="rule-system-role" class="text-input"
+                                    value="Bạn là trợ lý AI chuyên nghiệp trả lời dựa trên tài liệu được cung cấp.">
+                            </div>
+
+                            <div class="admin-card">
+                                <h4 class="card-heading" data-i18n="fallbackTitle">Câu trả lời khi thiếu dữ liệu (Fallback Response)</h4>
+                                <p class="card-subtext" data-i18n="fallbackSub">Thông báo xuất ra khi tài liệu không chứa câu trả lời.</p>
+                                <textarea id="rule-no-answer" class="text-area" rows="2"></textarea>
+                            </div>
+
+                            <div class="admin-card full-width">
+                                <h4 class="card-heading" data-i18n="policiesTitle">Quy tắc nghiệp vụ cốt lõi</h4>
+                                <p class="card-subtext" data-i18n="policiesSub">Quy tắc bắt buộc áp dụng cho mọi phản hồi (mỗi dòng 1 quy tắc).</p>
+                                <textarea id="rule-policies" class="text-area" rows="4"></textarea>
+                            </div>
+
+                            <div class="admin-card">
+                                <h4 class="card-heading" data-i18n="faqTitle">Cấu hình phản hồi nhanh FAQ (JSON)</h4>
+                                <p class="card-subtext" data-i18n="faqSub">Khớp từ khóa để trả lời tức thì không cần qua LLM.</p>
+                                <textarea id="rule-faq" class="text-area code-editor" rows="5"></textarea>
+                            </div>
+
+                            <div class="admin-card">
+                                <h4 class="card-heading" data-i18n="forbiddenTitle">Từ khóa cấm & Chặn tấn công</h4>
+                                <p class="card-subtext" data-i18n="forbiddenSub">Các từ bị cấm, phân tách bởi dấu phẩy.</p>
+                                <input type="text" id="rule-forbidden" class="text-input">
+                            </div>
+                        </div>
+
+                        <div class="admin-action-row">
+                            <button class="btn btn-primary" onclick="saveAdminRules()" data-i18n="saveRulesBtn">Lưu Cấu Hình Doanh Nghiệp</button>
+                            <span id="rules-save-status" class="status-indicator"></span>
+                        </div>
+                    </div>
+
+                    <!-- Subtab 2: Policy Ingestion -->
+                    <div id="admintab-ingest" class="subtab-pane">
+                        <div class="grid-2col">
+                            <div class="admin-card">
+                                <h4 class="card-heading" data-i18n="adminUploadTitle">Nạp Tài Liệu Quy Chuẩn Vào Kho Kiến Thức</h4>
+                                <p class="card-subtext" data-i18n="adminUploadSub">Quy định công ty, bảng giá, sổ tay nhân viên (PDF, Word, Excel, CSV, Ảnh OCR, TXT).</p>
+                                <input type="file" id="admin-file-input" multiple
+                                    accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.xls,.csv,.txt,.md" class="mt-2">
+                                <button class="btn btn-primary mt-3 btn-block" onclick="handleAdminUpload()" data-i18n="adminUploadBtn">Bắt Đầu Nạp & Sinh Vector</button>
+                                <div id="admin-upload-status" class="alert-box"></div>
+                            </div>
+
+                            <div class="admin-card">
+                                <h4 class="card-heading" data-i18n="manualSnippetTitle">Nhập Ghi Chú / Quy Định Thủ Công</h4>
+                                <p class="card-subtext" data-i18n="manualSnippetSub">Nhập trực tiếp thông báo hoặc quy định nội bộ mà không cần tải file.</p>
+                                <div class="form-field">
+                                    <label for="manual-title" data-i18n="manualTitleLabel">Tiêu đề:</label>
+                                    <input type="text" id="manual-title" class="text-input"
+                                        placeholder="Quy_dinh_moi_2026">
+                                </div>
+                                <div class="form-field mt-2">
+                                    <label for="manual-content" data-i18n="manualContentLabel">Nội dung:</label>
+                                    <textarea id="manual-content" class="text-area" rows="4"
+                                        placeholder="Nhập nội dung quy định..."></textarea>
+                                </div>
+                                <button class="btn btn-primary mt-3 btn-block" onclick="handleManualIngest()" data-i18n="manualSaveBtn">Lưu Ghi Chú Vào CSDL Vector</button>
+                                <div id="manual-status" class="alert-box"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtab 3: Library Repository -->
+                    <div id="admintab-manage" class="subtab-pane">
+                        <div class="repository-top">
+                            <div>
+                                <h4 class="card-heading" data-i18n="repoTitle">Kho Kiến Thức Đã Nạp</h4>
+                                <p class="card-subtext" data-i18n="repoSub">Toàn bộ tài liệu đang phục vụ truy vấn RAG.</p>
+                            </div>
+                            <button class="btn btn-danger" onclick="handleResetDatabase()" data-i18n="resetDbBtn">Xóa Sạch Toàn Bộ CSDL</button>
+                        </div>
+                        <div id="documents-list" class="repo-list">
+                            <!-- Items injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Minimal Kindle Footer -->
+        <footer class="app-footer">
+            <div class="footer-left">
+                <span data-i18n="footerEngine">TDnook Local In-Process Engine</span>
+            </div>
+
+            <div class="footer-right">
+                <span id="footer-doc-info" data-i18n="footerReady">Sẵn sàng</span>
+            </div>
+        </footer>
+    </div>
+
+    <dialog id="model-browser" aria-labelledby="model-browser-title">
+        <div class="model-browser-header">
+            <h3 id="model-browser-title" data-i18n="browseModelTitle">Chọn mô hình trên máy chạy TDnook</h3>
+            <button type="button" class="btn" onclick="closeModelBrowser()" data-i18n="closeBrowser">Đóng</button>
+        </div>
+        <p class="card-subtext" data-i18n="browseModelHelp">Chọn file GGUF hoặc mở thư mục MLX rồi bấm Chọn thư mục này. File không được tải lên.</p>
+        <div id="model-browser-shortcuts" class="model-browser-shortcuts"></div>
+        <form id="model-browser-form" onsubmit="event.preventDefault(); browseModelFolder(document.getElementById('model-browser-path').value)">
+            <label for="model-browser-path" data-i18n="browseFolderPath">Đường dẫn thư mục</label>
+            <div class="model-path-control">
+                <input id="model-browser-path" class="text-input" type="text" autocomplete="off" spellcheck="false">
+                <button type="submit" class="btn" data-i18n="openFolder">Mở</button>
+                <button id="model-browser-up" type="button" class="btn" onclick="browseModelFolder(modelBrowserData.parent)" data-i18n="parentFolder">Lên một cấp</button>
+            </div>
+        </form>
+        <nav id="model-browser-breadcrumbs" aria-label="Folder path"></nav>
+        <div class="model-current-selection">
+            <p id="model-browser-status" role="status" aria-live="polite"></p>
+            <button id="model-browser-select" type="button" class="btn btn-primary" onclick="selectModelPath(modelBrowserData.selection_path)" data-i18n="chooseEntry" disabled>Chọn</button>
+        </div>
+        <div id="model-browser-list" class="model-browser-list" aria-busy="false"></div>
+        <div class="model-browser-actions">
+            <button id="model-browser-more" type="button" class="btn" onclick="browseModelFolder(modelBrowserData.path, modelBrowserData.next_offset)" data-i18n="moreFiles" hidden>Xem thêm</button>
+        </div>
+    </dialog>
+
+    <script src="/static/app.js?v=20261005_04"></script>
+</body>
+
+</html>

@@ -1,0 +1,21 @@
+TDNOOK KNOWLEDGE BASE — SAMPLE COMPANY HANDBOOK
+
+1. Working Hours & Work Location
+- Standard office hours are from 8:00 AM to 5:30 PM, Monday through Friday.
+- Lunch break is from 12:00 PM to 1:30 PM.
+- Flexible remote work is permitted up to 2 days per week upon manager approval.
+
+2. Annual Leave & Holidays
+- Full-time employees are entitled to 12 days of paid annual leave per calendar year.
+- One additional day of annual leave is accrued for every three years of continuous service.
+- Sick leave with doctor's certification is covered according to national labor regulations.
+
+3. Equipment & Information Security
+- All employees are provided with a company laptop for work-related purposes.
+- Confidential documents, source code, and customer records must never be uploaded to unauthorized public services.
+- Multi-factor authentication (MFA) is strictly required on all corporate accounts.
+
+4. Support & Contacts
+- Internal IT Support: it-support@tdnook.local
+- HR Department: hr@tdnook.local
+- Office Hotline: 1900 6868

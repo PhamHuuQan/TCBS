@@ -1,0 +1,122 @@
+# ==============================================================================
+# Git Ignore Configuration for TDnook Project
+# ==============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# C extensions
+*.obj
+*.o
+*.lib
+*.a
+*.dll
+*.dylib
+
+# Virtual Environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+*.env
+! .env.example
+
+# Private Linked Projects & Symlinks
+TDSpeLi
+TDSpeLi/
+
+
+# Heavy Large Language Model Weights & Binaries (>100MB)
+*.gguf
+*.bin
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+
+# Local Database & User Documents
+data/vector_db/
+data/chroma_db/
+data/easyocr_models/
+data/documents/*
+!data/documents/.gitkeep
+!data/documents/sample_document.txt
+data/uploaded_docs/
+data/temp_user_uploads/
+.cv_backup/
+
+# Sensitive & Personal Documents (CV, Resumes, etc.)
+*CV*
+*cv*
+*Resume*
+*resume*
+data/documents/*.pdf
+data/documents/*.docx
+data/documents/*.xlsx
+data/documents/*.png
+data/documents/*.jpg
+data/documents/*.jpeg
+*.sqlite3
+*.db
+
+
+# Logs & Temporary Files
+*.log
+logs/
+*.tmp
+*.temp
+
+# Unit Tests & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Editor / IDE settings
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# Package distribution / build artifacts
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg

@@ -7,6 +7,7 @@ from app.rag.vector_store import add_chunks_to_db
 from app.rag.retriever import retrieve_top_k
 from app.llm.generator import generate_answer
 from app.rules.manager import check_guardrails_and_faq, get_business_rules
+from app.tcbs.router import enrich_query_with_tcbs
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +95,9 @@ def query_pipeline(query: str, filename: str = None, user_document_text: str = N
         
     # 2. Retrieve relevant chunks from Vector DB (System Knowledge)
     retrieved_chunks = retrieve_top_k(query, filename=filename)
+    tcbs_context = enrich_query_with_tcbs(query)
+    if tcbs_context:
+        logger.info("TCBS MCP data attached: tool=%s ticker=%s", tcbs_context.get("tool"), tcbs_context.get("ticker"))
     logger.info(f"Retrieved {len(retrieved_chunks)} relevant system knowledge chunks.")
     
     rules = get_business_rules()
@@ -101,7 +105,7 @@ def query_pipeline(query: str, filename: str = None, user_document_text: str = N
     no_answer_msg = rules.get("no_answer_response", "Xin lỗi, thông tin này không có trong tài liệu được cung cấp.")
     
     # If in strict mode and neither user document nor system knowledge has content
-    if strict_mode and not retrieved_chunks and not user_document_text:
+    if strict_mode and not retrieved_chunks and not user_document_text and not tcbs_context:
         return {
             "answer": no_answer_msg,
             "sources": []
@@ -112,7 +116,8 @@ def query_pipeline(query: str, filename: str = None, user_document_text: str = N
         query,
         retrieved_chunks,
         user_document_text=user_document_text,
-        user_document_name=user_document_name
+        user_document_name=user_document_name,
+        tcbs_context=tcbs_context
     )
     
     sources = []

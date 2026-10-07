@@ -37,6 +37,7 @@ const I18N = {
         brandTag: "Trí Tuệ Tài Liệu",
         navUser: "Đọc Sách & Trò Chuyện",
         navAdmin: "Quy Định Doanh Nghiệp",
+        navQuant: "Quant Trading",
         textureTitle: "Chọn chất liệu giấy",
         textureKindle: "Kindle Micro-Grain",
         textureParchment: "Book Parchment (Giấy Dó)",
@@ -135,6 +136,7 @@ const I18N = {
         brandTag: "Document Intelligence",
         navUser: "User Reading & Chat",
         navAdmin: "Admin Business Rules",
+        navQuant: "Quant Trading",
         textureTitle: "Select paper texture",
         textureKindle: "Kindle Micro-Grain",
         textureParchment: "Book Parchment",
@@ -1491,3 +1493,89 @@ function markModelSettingsPending() {
     badge.className = "badge";
     renderStableTranslation(badge, "modelPending");
 }
+
+async function loadTCBSStatus() {
+    const badge = document.getElementById("tcbs-connection-badge");
+    if (!badge) return;
+    try {
+        const res = await fetch("/tcbs/status");
+        const data = await res.json();
+        badge.textContent = data.connected ? "TCBS: ĐÃ KẾT NỐI" : "TCBS: CHƯA KẾT NỐI";
+        badge.className = "quant-status " + (data.connected ? "connected" : "disconnected");
+    } catch (e) {
+        badge.textContent = "TCBS: KHÔNG KIỂM TRA ĐƯỢC";
+        badge.className = "quant-status disconnected";
+    }
+}
+async function connectTCBS() {
+    const badge = document.getElementById("tcbs-connection-badge");
+    if (badge) badge.textContent = "Đang mở xác thực TCBS…";
+    try {
+        const res = await fetch("/tcbs/connect", { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "TCBS connection failed");
+        if (badge) { badge.textContent = "TCBS: ĐÃ KẾT NỐI"; badge.className = "quant-status connected"; }
+    } catch (e) {
+        if (badge) { badge.textContent = "Kết nối thất bại"; badge.className = "quant-status disconnected"; }
+        alert("TCBS: " + e.message);
+    }
+}
+async function disconnectTCBS() {
+    await fetch("/tcbs/disconnect", { method: "POST" });
+    loadTCBSStatus();
+}
+function quantSetSummary(data) {
+    const el = document.getElementById("quant-summary");
+    if (!el) return;
+    const score = data.score == null ? "—" : Number(data.score).toFixed(1);
+    el.className = "quant-summary";
+    el.innerHTML = '<div class="quant-symbol">' + data.ticker + '</div><div><strong>' + data.signal + '</strong><br><span>Quant Score: <b>' + score + '/100</b></span></div>';
+    const grid = document.getElementById("quant-score-grid");
+    grid.innerHTML = "";
+    Object.entries(data.scores || {}).forEach(function(entry) {
+        const key = entry[0], value = entry[1];
+        const card = document.createElement("div");
+        card.className = "score-cell";
+        card.innerHTML = '<span>' + key + '</span><strong>' + (value == null ? "—" : Number(value).toFixed(1)) + '</strong>';
+        grid.appendChild(card);
+    });
+    document.getElementById("quant-raw-data").textContent = JSON.stringify(data.metrics || {}, null, 2);
+    document.getElementById("quant-data-count").textContent = Object.keys(data.metrics || {}).length + " nhóm dữ liệu";
+}
+async function runQuantAnalysis() {
+    const ticker = (document.getElementById("quant-ticker").value || "").trim().toUpperCase();
+    if (!/^[A-Z]{3,4}$/.test(ticker)) return alert("Mã cổ phiếu phải gồm 3–4 chữ cái.");
+    const summary = document.getElementById("quant-summary");
+    summary.className = "quant-summary loading";
+    summary.textContent = "Đang lấy dữ liệu TCBS và tính Quant Score…";
+    try {
+        const res = await fetch("/quant/analyze/" + encodeURIComponent(ticker));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Analysis failed");
+        quantSetSummary(data);
+    } catch (e) { summary.className = "quant-summary empty"; summary.textContent = "Lỗi: " + e.message; }
+}
+async function runQuantCompare() {
+    const tickers = document.getElementById("quant-compare-tickers").value.split(",").map(function(x){return x.trim().toUpperCase();}).filter(Boolean);
+    const box = document.getElementById("quant-compare-result"); box.textContent = "Đang phân tích…";
+    try {
+        const res = await fetch("/quant/compare", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({tickers:tickers})});
+        const data = await res.json(); if (!res.ok) throw new Error(data.detail || "Compare failed");
+        box.innerHTML = (data.analyses || []).map(function(x){return '<div class="rank-row"><strong>' + x.ticker + '</strong><span>' + x.signal + '</span><b>' + (x.score == null ? "—" : x.score) + '</b></div>';}).join("");
+    } catch(e) { box.textContent = "Lỗi: " + e.message; }
+}
+async function runQuantScreen() {
+    const tickers = document.getElementById("quant-screen-tickers").value.split(",").map(function(x){return x.trim().toUpperCase();}).filter(Boolean);
+    const box = document.getElementById("quant-screen-result"); box.textContent = "Đang screening…";
+    try {
+        const res = await fetch("/quant/screen", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({tickers:tickers})});
+        const data = await res.json(); if (!res.ok) throw new Error(data.detail || "Screen failed");
+        box.innerHTML = (data.results || []).map(function(x,i){return '<div class="rank-row"><strong>#' + (i+1) + ' ' + x.ticker + '</strong><span>' + x.signal + '</span><b>' + (x.score == null ? "—" : x.score) + '</b></div>';}).join("");
+    } catch(e) { box.textContent = "Lỗi: " + e.message; }
+}
+const _tdnookSwitchPortal = window.switchPortal;
+window.switchPortal = function(portal) {
+    if (typeof _tdnookSwitchPortal === "function") _tdnookSwitchPortal(portal);
+    if (portal === "quant") setTimeout(loadTCBSStatus, 0);
+};
+window.addEventListener("DOMContentLoaded", function(){ loadTCBSStatus(); });

@@ -30,3 +30,7 @@ requests>=2.31.0
 
 # Official MCP client (OAuth 2.1 / PKCE; security-patched release)
 mcp>=2.2.0
+
+# MCP v2 HTTP transport/OAuth runtime
+httpx2>=2.5.0
+httpx>=0.28.0

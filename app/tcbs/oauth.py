@@ -88,10 +88,10 @@ async def connect_and_list_tools() -> list[dict]:
             callback_handler=_wait_for_callback,
         )
         async with httpx2.AsyncClient(auth=provider, timeout=60.0) as http_client:
-            async with streamable_http_client(DEFAULT_URL, http_client=http_client) as (read, write):
-                async with Client((read, write)) as client:
-                    result = await client.list_tools()
-                    return [{"name": tool.name, "description": getattr(tool, "description", None), "inputSchema": getattr(tool, "inputSchema", None)} for tool in result.tools]
+            transport = streamable_http_client(DEFAULT_URL, http_client=http_client)
+            async with Client(transport) as client:
+                result = await client.list_tools()
+                return [{"name": tool.name, "description": getattr(tool, "description", None), "inputSchema": getattr(tool, "inputSchema", None)} for tool in result.tools]
 
 def callback_from_url(url: str) -> tuple[str, str | None, str | None]:
     parsed = urlparse(url)

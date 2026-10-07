@@ -9,7 +9,7 @@ from mcp import Client
 from mcp.client.auth import AuthorizationCodeResult, OAuthClientProvider, TokenStorage
 from mcp.client.streamable_http import streamable_http_client
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken, OAuthClientMetadata
-import httpx2
+import httpx
 from pydantic import AnyUrl
 
 from app.tcbs.client import DEFAULT_URL
@@ -87,7 +87,7 @@ async def connect_and_list_tools() -> list[dict]:
             redirect_handler=_open_browser,
             callback_handler=_wait_for_callback,
         )
-        async with httpx2.AsyncClient(auth=provider, timeout=60.0) as http_client:
+        async with httpx.AsyncClient(auth=provider, timeout=60.0) as http_client:
             transport = streamable_http_client(DEFAULT_URL, http_client=http_client)
             async with Client(transport) as client:
                 result = await client.list_tools()

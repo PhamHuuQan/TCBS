@@ -132,12 +132,34 @@ async def tcbs_connect():
 
 
 @router.get("/tcbs/oauth/callback")
-async def tcbs_oauth_callback(code: str | None = None, state: str | None = None, iss: str | None = None):
-    if not code:
-        raise HTTPException(status_code=400, detail="Missing OAuth code.")
-    if not receive_callback(code, state, iss):
-        raise HTTPException(status_code=409, detail="No pending TCBS connection.")
-    return {"status": "received", "message": "Đã nhận xác thực TCBS."}
+async def tcbs_oauth_callback(
+    code: str | None = None,
+    state: str | None = None,
+    iss: str | None = None,
+    error: str | None = None,
+    error_description: str | None = None,
+):
+    try:
+        chat_id = await receive_callback(code, state, iss, error, error_description)
+    except TCBSMCPError as exc:
+        logger.error("TCBS OAuth callback failed: %s", exc, exc_info=True)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    if chat_id is not None:
+        try:
+            from app.telegram.bot import send_message, main_menu
+            await send_message(
+                chat_id,
+                "✅ <b>TCBS đã kết nối thành công.</b> Bạn có thể phân tích mã, xem giá/định giá/kỹ thuật và dùng các chức năng Quant.",
+                main_menu(),
+            )
+        except Exception:
+            logger.exception("Could not send TCBS OAuth success message to Telegram.")
+
+    return {
+        "status": "received",
+        "message": "Đã xác thực TCBS thành công. Bạn có thể quay lại Telegram.",
+    }
 
 
 @router.post("/tcbs/disconnect")

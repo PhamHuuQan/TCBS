@@ -116,6 +116,32 @@ def tcbs_tools():
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
+@router.post("/tcbs/connect")
+async def tcbs_connect():
+    """Start TCBS MCP OAuth and verify the connection."""
+    try:
+        tools = await connect_and_list_tools()
+        return {"status": "connected", "tools": tools, "count": len(tools)}
+    except Exception as exc:
+        logger.error("TCBS connection failed: %s", exc, exc_info=True)
+        raise HTTPException(status_code=502, detail=f"TCBS connection failed: {exc}") from exc
+
+
+@router.get("/tcbs/oauth/callback")
+async def tcbs_oauth_callback(code: str | None = None, state: str | None = None, iss: str | None = None):
+    if not code:
+        raise HTTPException(status_code=400, detail="Missing OAuth code.")
+    if not receive_callback(code, state, iss):
+        raise HTTPException(status_code=409, detail="No pending TCBS connection.")
+    return {"status": "received", "message": "Đã nhận xác thực TCBS."}
+
+
+@router.post("/tcbs/disconnect")
+def tcbs_disconnect():
+    disconnect()
+    return {"status": "disconnected"}
+
+
 @router.get("/rules")
 def get_rules():
     """

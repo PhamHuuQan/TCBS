@@ -62,7 +62,10 @@ def telegram_webhook_secret() -> str:
     explicit = os.getenv("TELEGRAM_WEBHOOK_SECRET", "").strip()
     if explicit:
         return explicit
-    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    token = (
+        os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+        or os.getenv("TELEGRAM_TOKEN", "").strip()
+    )
     if not token:
         return "telegram-webhook-not-configured"
     return "tcbs-" + hashlib.sha256(token.encode("utf-8")).hexdigest()[:32]
@@ -305,8 +308,11 @@ async def _alert_worker() -> None:
 
 async def telegram_startup() -> None:
     init_db()
-    if not os.getenv("TELEGRAM_BOT_TOKEN", "").strip():
-        logger.warning("Telegram bot disabled: TELEGRAM_BOT_TOKEN is missing.")
+    if not (
+        os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+        or os.getenv("TELEGRAM_TOKEN", "").strip()
+    ):
+        logger.warning("Telegram bot disabled: TELEGRAM_BOT_TOKEN/TELEGRAM_TOKEN is missing.")
         return
     url = _webhook_url()
     if not url:

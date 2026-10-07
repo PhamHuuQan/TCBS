@@ -92,7 +92,7 @@ def get_llm():
 
     raise RuntimeError(f"Failed to load LLM model at {model_path} with available engines.")
 
-def build_prompt(query: str, retrieved_chunks: list[dict], tokenizer=None, user_document_text: str = None, user_document_name: str = None) -> str:
+def build_prompt(query: str, retrieved_chunks: list[dict], tokenizer=None, user_document_text: str = None, user_document_name: str = None, tcbs_context: dict = None) -> str:
     from app.rules.manager import get_business_rules
     rules = get_business_rules()
     
@@ -122,6 +122,15 @@ def build_prompt(query: str, retrieved_chunks: list[dict], tokenizer=None, user_
             combined = "\n".join(texts)
             context_blocks.append(f"=== [KIẾN THỨC HỆ THỐNG / SYSTEM KNOWLEDGE: {fn}] ===\n{combined}")
             
+    # 3. Live TCBS MCP context. This is tool output, not RAG knowledge, and is
+    # explicitly separated so the model can distinguish current market data.
+    if tcbs_context:
+        import json
+        context_blocks.append(
+            "=== [DỮ LIỆU LIVE / TCBS MCP] ===\n"
+            + json.dumps(tcbs_context, ensure_ascii=False, indent=2, default=str)
+        )
+
     context_text = "\n\n".join(context_blocks)
         
     system_msg = f"""{system_role}
@@ -145,7 +154,9 @@ QUY TẮC PHẢN HỒI:
 2. VỚI YÊU CẦU TÓM TẮT / TỔNG QUAN TÀI LIỆU:
    - Tóm tắt rõ ràng nội dung chính của tài liệu người dùng đính kèm hoặc từng tài liệu có trong phần tham khảo.
 3. NGUYÊN TẮC DỮ LIỆU:
-   - CHỈ sử dụng dữ liệu có trong phần [TÀI LIỆU THAM KHẢO & KIẾN THỨC HỆ THỐNG]. Đối chiếu chính xác giữa tài liệu người dùng và kiến thức hệ thống. Tuyệt đối không tự suy diễn hoặc bịa đặt ngoài tài liệu.
+   - Với câu hỏi tài liệu, chỉ sử dụng dữ liệu trong phần tài liệu tham khảo.
+   - Với câu hỏi chứng khoán, được sử dụng phần [DỮ LIỆU LIVE / TCBS MCP] nếu có. Không được tự bịa số liệu thị trường.
+   - Phân biệt rõ dữ liệu tài liệu lịch sử với dữ liệu thị trường live và nêu nguồn khi cần.
    - Nếu tài liệu KHÔNG chứa thông tin trả lời câu hỏi, trả lời chính xác câu: "{no_answer_msg}"
 4. Tuyệt đối không xuất suy nghĩ nội bộ, không hiển thị thẻ <think>."""
 
@@ -226,12 +237,12 @@ def clean_llm_output(text: str) -> str:
         
     return "\n".join(cleaned_lines).strip()
 
-def generate_answer(query: str, retrieved_chunks: list[dict], user_document_text: str = None, user_document_name: str = None) -> str:
+def generate_answer(query: str, retrieved_chunks: list[dict], user_document_text: str = None, user_document_name: str = None, tcbs_context: dict = None) -> str:
     from app.rules.manager import get_business_rules
     rules = get_business_rules()
     no_answer_msg = rules.get("no_answer_response", "Xin lỗi, tôi không tìm thấy thông tin phù hợp trong tài liệu của bạn.")
     
-    if not retrieved_chunks and not user_document_text:
+    if not retrieved_chunks and not user_document_text and not tcbs_context:
         return no_answer_msg
         
     try:
@@ -251,7 +262,8 @@ def generate_answer(query: str, retrieved_chunks: list[dict], user_document_text
                 retrieved_chunks,
                 tokenizer=tokenizer,
                 user_document_text=user_document_text,
-                user_document_name=user_document_name
+                user_document_name=user_document_name,
+                tcbs_context=tcbs_context
             )
             sampler = make_sampler(temp=temperature if temperature > 0 else 0.2)
             raw_answer = mlx_lm.generate(

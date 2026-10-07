@@ -247,30 +247,54 @@ async def _register_client(
     client_metadata_url: str,
     client: httpx.AsyncClient,
 ) -> tuple[str, str | None, str | None]:
-    # Prefer CIMD when the authorization server explicitly supports it.
-    # This avoids requiring a long-lived dynamic client registration.
+    # Preferred for partner/approved deployments: use a pre-registered
+    # OAuth client supplied by TCBS and whitelist this exact redirect URI.
+    static_client_id = os.getenv("TCBS_OAUTH_CLIENT_ID", "").strip()
+    if static_client_id:
+        static_secret = os.getenv("TCBS_OAUTH_CLIENT_SECRET", "").strip() or None
+        static_auth = os.getenv("TCBS_OAUTH_TOKEN_AUTH_METHOD", "").strip() or ("client_secret_basic" if static_secret else "none")
+        return static_client_id, static_secret, static_auth
+
+    # Newer MCP OAuth deployments can use CIMD, avoiding public DCR.
     if oauth_metadata.get("client_id_metadata_document_supported") is True:
         return client_metadata_url, None, "none"
 
     endpoint = oauth_metadata.get("registration_endpoint")
     if not endpoint:
         raise TCBSMCPError(
-            "TCBS OAuth không hỗ trợ CIMD và không công bố registration_endpoint."
+            "TCBS OAuth không hỗ trợ CIMD và không công bố registration_endpoint. "
+            "Cần client OAuth được TCBS cấp trước."
         )
 
     payload = {
         "client_name": "TCBS Quant Assistant",
+        "client_uri": client_metadata_url.rsplit("/tcbs/oauth/", 1)[0],
+        "application_type": "web",
         "redirect_uris": [redirect],
         "grant_types": ["authorization_code", "refresh_token"],
         "response_types": ["code"],
-        "token_endpoint_auth_method": "none",
+        "token_endpoint_auth_method": "none" if not os.getenv("TCBS_OAUTH_CLIENT_SECRET", "").strip() else "client_secret_post",
     }
     if scope:
         payload["scope"] = scope
 
-    response = await client.post(endpoint, json=payload)
+    response = await client.post(
+        endpoint,
+        json=payload,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "TCBS-Quant-Assistant/1.0",
+        },
+    )
     if response.status_code >= 400:
         detail = response.text[:800]
+        if response.status_code == 403:
+            raise TCBSMCPError(
+                "TCBS từ chối Dynamic Client Registration (HTTP 403). "
+                "MCP endpoint đã xác thực yêu cầu OAuth nhưng TCBS chưa cho phép "
+                "ứng dụng này tự đăng ký OAuth client. Cần TCBS cấp/whitelist "
+                "OAuth client_id cho redirect URI của Railway."
+            )
         raise TCBSMCPError(
             f"TCBS Dynamic Client Registration HTTP {response.status_code}: {detail}"
         )

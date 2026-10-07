@@ -101,6 +101,7 @@ def tcbs_status():
     return {
         "enabled": os.getenv("TCBS_MCP_ENABLED", "true").lower() in {"1", "true", "yes", "on"},
         "configured": client.configured,
+        "connected": connected(),
         "url": client.url,
         "auth": "oauth2_access_token" if client.configured else "not_configured",
     }

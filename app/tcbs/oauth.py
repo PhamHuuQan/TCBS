@@ -244,12 +244,18 @@ async def _register_client(
     oauth_metadata: dict,
     redirect: str,
     scope: str | None,
+    client_metadata_url: str,
     client: httpx.AsyncClient,
 ) -> tuple[str, str | None, str | None]:
+    # Prefer CIMD when the authorization server explicitly supports it.
+    # This avoids requiring a long-lived dynamic client registration.
+    if oauth_metadata.get("client_id_metadata_document_supported") is True:
+        return client_metadata_url, None, "none"
+
     endpoint = oauth_metadata.get("registration_endpoint")
     if not endpoint:
         raise TCBSMCPError(
-            "TCBS OAuth không công bố registration_endpoint; flow DCR không thể tự đăng ký client."
+            "TCBS OAuth không hỗ trợ CIMD và không công bố registration_endpoint."
         )
 
     payload = {
@@ -274,7 +280,7 @@ async def _register_client(
     if not client_id:
         raise TCBSMCPError("TCBS DCR không trả về client_id.")
     client_secret = body.get("client_secret")
-    token_auth = body.get("token_endpoint_auth_method")
+    token_auth = body.get("token_endpoint_auth_method") or "none"
     return client_id, client_secret, token_auth
 
 
@@ -285,8 +291,13 @@ async def _prepare_authorization(chat_id: int) -> str:
         protected, oauth, issuer = await _discover(DEFAULT_URL, client)
 
         scope = _pick_scope(oauth)
+        domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
+        if not domain:
+            parsed = urlparse(redirect)
+            domain = parsed.netloc
+        client_metadata_url = f"https://{domain}/tcbs/oauth/client-metadata.json"
         client_id, client_secret, token_auth = await _register_client(
-            oauth, redirect, scope, client
+            oauth, redirect, scope, client_metadata_url, client
         )
 
         # TCBS MCP is a public resource; keep resource URL canonical (no trailing slash)
@@ -335,6 +346,7 @@ async def _prepare_authorization(chat_id: int) -> str:
             "token_endpoint": token_endpoint,
             "issuer": issuer,
             "resource": resource,
+            "token_endpoint_auth_method": token_auth or "none",
             "created_at": int(time.time()),
         }
         data = _store.load()

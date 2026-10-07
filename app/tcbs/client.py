@@ -36,6 +36,7 @@ class TCBSMCPClient:
             self.session.headers["Authorization"] = f"Bearer {self.access_token}"
         self._session_id: str | None = None
         self._request_id = 0
+        self._initialized = False
 
     @property
     def configured(self) -> bool:
@@ -83,6 +84,9 @@ class TCBSMCPClient:
             detail = response.text[:1000]
             raise TCBSMCPError(f"TCBS MCP HTTP {response.status_code}: {detail}")
 
+        if payload.get("method", "") == "notifications/initialized" and response.status_code in (200, 202, 204) and not response.text.strip():
+            return {}
+
         content_type = response.headers.get("content-type", "").lower()
         if "text/event-stream" in content_type:
             return self._parse_sse(response.text)
@@ -95,6 +99,8 @@ class TCBSMCPClient:
         return data
 
     def initialize(self) -> dict[str, Any]:
+        if self._initialized:
+            return {}
         result = self._post({
             "jsonrpc": "2.0",
             "id": self._next_id(),
@@ -109,6 +115,7 @@ class TCBSMCPClient:
             raise TCBSMCPError(str(result["error"]))
         # MCP requires initialized notification before normal operations.
         self._post({"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}})
+        self._initialized = True
         return result.get("result", {})
 
     def list_tools(self) -> list[dict[str, Any]]:

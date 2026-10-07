@@ -431,3 +431,49 @@ and choose **Select this folder**. Selection fills the absolute path; it does
 not upload weights or save settings until you click **Save Model Settings**.
 The picker is available when accessing TDnook locally; remote clients can still
 enter the server's model path manually.
+
+
+---
+# TCBS Quant Trading Layer
+
+This fork keeps TDnook's local-first RAG/document workflow and adds a read-only TCBS MCP integration plus a deterministic quantitative analysis layer.
+
+## Architecture
+
+```
+TCBS MCP ──> market/fundamental/technical data ──┐
+                                                 ├─> Python Quant Engine ──> score/signal
+Local documents ──> ChromaDB RAG ────────────────┘                 │
+                                                                  └─> Local LLM explanation
+```
+
+The Python engine performs the scoring and numeric transformations. The LLM is not trusted to invent market numbers or replace deterministic calculations.
+
+## TCBS connection
+
+Official remote MCP endpoint:
+`https://mcp.tcbs.com.vn/mcp/tcinvest/`
+
+Run locally:
+
+```powershell
+python -m venv .venv
+.venv\\Scripts\\activate
+pip install -r requirements.txt
+copy .env.example .env
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Then use the application's TCBS connection flow. OAuth tokens are kept in memory; passwords and iOTP are never written to the repository.
+
+## Quant API
+
+After TCBS is connected:
+
+- `GET /quant/analyze/VCB` — one-ticker analysis.
+- `POST /quant/compare` with `{"tickers":["VCB","BID","CTG"]}` — side-by-side comparison.
+- `POST /quant/screen` with `{"tickers":["VCB","BID","CTG", "MBB"]}` — ranked screening.
+
+The engine currently separates valuation, quality, growth, momentum and risk, ignores unavailable fields instead of fabricating them, and reports an explicit insufficient-data state when TCBS does not expose enough inputs.
+
+See `docs/TCBS_MCP.md` for the MCP integration details.

@@ -477,3 +477,56 @@ After TCBS is connected:
 The engine currently separates valuation, quality, growth, momentum and risk, ignores unavailable fields instead of fabricating them, and reports an explicit insufficient-data state when TCBS does not expose enough inputs.
 
 See `docs/TCBS_MCP.md` for the MCP integration details.
+
+
+---
+
+## 7. Railway B1 — Telegram-first TCBS Quant Assistant
+
+This repository now includes a cloud deployment path for a Telegram-first quant assistant:
+
+\`\`\`text
+Telegram Webhook
+      |
+      v
+Railway FastAPI service
+      |
+      +--> TCBS Remote MCP (OAuth 2.0, read-only)
+      +--> Deterministic Quant Engine
+      +--> ChromaDB RAG for uploaded BCTC/documents
+      +--> Gemini API for AI synthesis/chat
+      +--> SQLite + Railway Volume for watchlist/alerts/history
+\`\`\`
+
+The Railway runtime intentionally uses \`requirements-railway.txt\` so the B1 deployment does not depend on local GGUF/MLX inference packages. The original local-first TDnook runtime remains available through \`requirements.txt\`.
+
+### Telegram features
+
+- Inline menu for analysis, comparison, screening, technicals, valuation, bank ratios, news, foreign flow, shareholders/insiders, dividends, BCTC/RAG, AI chat, watchlist, alerts and TCBS connection.
+- \`/analyze\`, \`/compare\`, \`/screen\`, \`/watch\`, \`/alert\`, \`/ai\`, \`/tcbs\`, \`/id\`, \`/help\`.
+- Webhook mode instead of long-polling, avoiding competing \`getUpdates\` instances.
+- Personal-user allowlist via \`TELEGRAM_ALLOWED_USER_IDS\`.
+- Persistent SQLite state on \`/data\`.
+- Price-alert worker is best-effort and only triggers when TCBS exposes a recognizable live price field; it never fabricates a price.
+
+### Railway variables
+
+Required for the B1 path:
+
+\`\`\`env
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_ALLOWED_USER_IDS=
+GEMINI_API_KEY=
+\`\`\`
+
+The existing Railway variable name \`TELEGRAM_TOKEN\` is also accepted for compatibility.
+
+When Railway generates a public domain, the webhook and TCBS OAuth callback can be derived automatically from \`RAILWAY_PUBLIC_DOMAIN\`. You can override them with \`TELEGRAM_WEBHOOK_URL\` and \`TCBS_OAUTH_REDIRECT_URI\`.
+
+### Persistence
+
+Mount a Railway Volume at \`/data\`. The bot stores its SQLite database and downloaded documents there. Configure \`TELEGRAM_DB_PATH=/data/tcbs_telegram.db\` and \`TELEGRAM_DOCUMENT_DIR=/data/documents\`.
+
+### TCBS authentication
+
+The bot does not store TCBS passwords or iOTP credentials. The Telegram \`Kết nối TCBS\` button starts the official OAuth flow; the user authenticates at TCBS and the callback returns to the Railway service. OAuth access tokens are kept in process memory in the current implementation, so a service restart/redeploy requires reconnecting TCBS.

@@ -7,8 +7,7 @@ import json
 import logging
 import os
 import re
-import secrets
-import time
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -17,10 +16,9 @@ import httpx
 from app.quant.analyzer import analyze_ticker
 from app.quant.compare import compare_tickers
 from app.quant.screener import screen_tickers
-from app.rag.loader import extract_pages_from_file
 from app.rag.pipeline import ingest_document
 from app.rag.retriever import retrieve_top_k
-from app.tcbs.client import TCBSMCPClient, TCBSMCPError, extract_tickers
+from app.tcbs.client import TCBSMCPClient, extract_tickers
 from app.tcbs.router import enrich_query_with_tcbs
 from app.telegram.ai import CloudAIError, ask_gemini, synthesize_quant
 from app.telegram.keyboards import alerts_menu, after_ticker, main_menu, watch_menu
@@ -61,7 +59,10 @@ def telegram_webhook_secret() -> str:
     explicit = os.getenv("TELEGRAM_WEBHOOK_SECRET", "").strip()
     if explicit:
         return explicit
-    return secrets.token_hex(16)
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    if not token:
+        return "telegram-webhook-not-configured"
+    return "tcbs-" + hashlib.sha256(token.encode("utf-8")).hexdigest()[:32]
 
 
 def _webhook_url() -> str | None:
@@ -95,7 +96,13 @@ async def send_message(
     text = text or "Không có dữ liệu."
     chunks = [text[i:i + 3900] for i in range(0, len(text), 3900)] or [""]
     for idx, chunk in enumerate(chunks):
-        payload = {"chat_id": chat_id, "text": chunk, "disable_web_page_preview": True}
+        payload = {
+            "chat_id": chat_id,
+            "text": chunk,
+            "disable_web_page_preview": True,
+        }
+        if parse_mode:
+            payload["parse_mode"] = parse_mode
         if idx == len(chunks) - 1 and reply_markup:
             payload["reply_markup"] = reply_markup
         try:
@@ -104,6 +111,8 @@ async def send_message(
             if parse_mode:
                 payload.pop("parse_mode", None)
                 await telegram_call("sendMessage", payload)
+            else:
+                raise
 
 
 async def answer_callback(callback_id: str) -> None:

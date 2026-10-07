@@ -36,6 +36,7 @@
             <nav class="portal-nav">
                 <button class="nav-item active" id="nav-user" onclick="switchPortal('user')" data-i18n="navUser">Đọc Sách & Trò Chuyện</button>
                 <button class="nav-item" id="nav-admin" onclick="switchPortal('admin')" data-i18n="navAdmin">Quy Định Doanh Nghiệp</button>
+                <button class="nav-item" id="nav-quant" onclick="switchPortal('quant')" data-i18n="navQuant">Quant Trading</button>
             </nav>
 
             <!-- Quick Controls -->
@@ -349,6 +350,53 @@
                 </div>
             </section>
         </div>
+
+        <!-- ================= QUANT PORTAL ================= -->
+        <section id="portal-quant" class="portal-view">
+            <div class="quant-shell">
+                <div class="quant-toolbar">
+                    <div>
+                        <div class="quant-kicker">TCBS MCP · QUANT ENGINE</div>
+                        <h2>Phân tích & Xếp hạng cổ phiếu</h2>
+                        <p>TCBS cung cấp dữ liệu; Python tính toán; AI chỉ diễn giải kết quả.</p>
+                    </div>
+                    <div class="quant-actions">
+                        <span id="tcbs-connection-badge" class="quant-status">Đang kiểm tra TCBS…</span>
+                        <button class="btn btn-primary" onclick="connectTCBS()">Kết nối TCBS</button>
+                        <button class="btn" onclick="disconnectTCBS()">Ngắt kết nối</button>
+                    </div>
+                </div>
+                <div class="quant-grid">
+                    <div class="quant-card quant-main-card">
+                        <label for="quant-ticker">Mã cổ phiếu</label>
+                        <div class="quant-input-row">
+                            <input id="quant-ticker" class="text-input quant-ticker-input" value="VCB" maxlength="4" placeholder="VCB">
+                            <button class="btn btn-primary" onclick="runQuantAnalysis()">Phân tích</button>
+                        </div>
+                        <div id="quant-summary" class="quant-summary empty">Nhập mã rồi bấm Phân tích.</div>
+                        <div id="quant-score-grid" class="score-grid"></div>
+                    </div>
+                    <div class="quant-card">
+                        <h3>So sánh</h3>
+                        <p class="card-subtext">Nhập nhiều mã, cách nhau bằng dấu phẩy.</p>
+                        <input id="quant-compare-tickers" class="text-input" value="VCB,BID,CTG,MBB">
+                        <button class="btn btn-outline btn-block" onclick="runQuantCompare()">So sánh</button>
+                        <div id="quant-compare-result" class="quant-result"></div>
+                    </div>
+                    <div class="quant-card">
+                        <h3>Screening</h3>
+                        <p class="card-subtext">Xếp hạng một danh sách mã do bạn cung cấp.</p>
+                        <input id="quant-screen-tickers" class="text-input" value="VCB,BID,CTG,MBB,TCB,VPB,ACB">
+                        <button class="btn btn-outline btn-block" onclick="runQuantScreen()">Chạy screening</button>
+                        <div id="quant-screen-result" class="quant-result"></div>
+                    </div>
+                </div>
+                <div class="quant-card quant-details-card">
+                    <div class="section-title-row"><h3>Snapshot dữ liệu TCBS</h3><span class="badge" id="quant-data-count">0 nhóm dữ liệu</span></div>
+                    <pre id="quant-raw-data" class="quant-raw">Chưa có dữ liệu.</pre>
+                </div>
+            </div>
+        </section>
 
         <!-- Minimal Kindle Footer -->
         <footer class="app-footer">

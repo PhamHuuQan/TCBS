@@ -193,7 +193,7 @@ async def _send_quant(chat_id: int, ticker: str) -> None:
 
 async def _send_compare(chat_id: int, tickers: list[str]) -> None:
     result = await asyncio.to_thread(compare_tickers, tickers)
-    rows = result.get("results", result if isinstance(result, list) else [])
+    rows = result.get("analyses", result.get("results", result if isinstance(result, list) else []))
     lines = ["<b>SO SÁNH QUANT</b>", ""]
     for item in rows:
         lines.append(
@@ -491,17 +491,23 @@ async def _ask_ai(chat_id: int, question: str) -> None:
 
 async def _start_tcbs(chat_id: int) -> None:
     from app.tcbs.oauth import start_telegram_oauth
-    try:
-        await start_telegram_oauth(
-            chat_id,
-            lambda url: send_message(
+
+    async def notify(url: str) -> None:
+        if "tcbs=connected" in url:
+            await send_message(chat_id, "✅ <b>TCBS đã kết nối.</b> Bạn có thể dùng toàn bộ menu dữ liệu/quant.", main_menu())
+        elif "tcbs=error" in url:
+            await send_message(chat_id, "❌ <b>OAuth TCBS thất bại.</b> Hãy thử Kết nối TCBS lại.", main_menu())
+        else:
+            await send_message(
                 chat_id,
                 "🔐 <b>Kết nối TCBS</b>\n\n"
                 "Mở link dưới đây, đăng nhập TCBS và xác nhận iOTP. "
                 "Sau khi xác thực xong trang sẽ quay về Railway.\n\n"
                 f"<a href=\"{html.escape(url)}\">MỞ TRANG XÁC THỰC TCBS</a>",
-            ),
-        )
+            )
+
+    try:
+        await start_telegram_oauth(chat_id, notify)
     except Exception as exc:
         await send_message(chat_id, f"⚠️ Không khởi động được OAuth TCBS: {html.escape(str(exc))}", main_menu())
 

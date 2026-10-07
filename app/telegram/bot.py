@@ -328,6 +328,23 @@ async def telegram_startup() -> None:
                 "drop_pending_updates": False,
             },
         )
+        await telegram_call(
+            "setMyCommands",
+            {
+                "commands": [
+                    {"command": "start", "description": "Mở menu TCBS Quant"},
+                    {"command": "analyze", "description": "Phân tích một mã"},
+                    {"command": "compare", "description": "So sánh nhiều mã"},
+                    {"command": "screen", "description": "Screener universe"},
+                    {"command": "watch", "description": "Quản lý watchlist"},
+                    {"command": "alert", "description": "Tạo cảnh báo giá"},
+                    {"command": "alerts", "description": "Xem cảnh báo"},
+                    {"command": "ai", "description": "Hỏi AI + TCBS + BCTC"},
+                    {"command": "tcbs", "description": "Kết nối TCBS"},
+                    {"command": "help", "description": "Xem trợ giúp"},
+                ],
+            },
+        )
         me = await telegram_call("getMe")
         logger.info("Telegram webhook ready for @%s -> %s", me.get("result", {}).get("username"), url)
     except Exception:

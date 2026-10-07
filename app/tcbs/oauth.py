@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 from dataclasses import dataclass
@@ -20,29 +21,56 @@ logger = logging.getLogger(__name__)
 
 
 class InMemoryTokenStorage(TokenStorage):
+    """Persistent OAuth client/token storage on the Railway volume."""
+
     def __init__(self) -> None:
         self.tokens: OAuthToken | None = None
         self.client_info: OAuthClientInformationFull | None = None
+        self.path = os.getenv("TCBS_OAUTH_STORAGE_PATH", "/data/tcbs_oauth.json")
+
+    async def _load(self) -> None:
+        if self.tokens is not None or self.client_info is not None:
+            return
+        try:
+            with open(self.path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if data.get("tokens"):
+                self.tokens = OAuthToken.model_validate(data["tokens"])
+            if data.get("client_info"):
+                self.client_info = OAuthClientInformationFull.model_validate(data["client_info"])
+        except FileNotFoundError:
+            return
+        except Exception:
+            logger.exception("Could not load persisted TCBS OAuth state")
+            self.tokens = None
+            self.client_info = None
+
+    async def _save(self) -> None:
+        os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
+        data = {
+            "tokens": self.tokens.model_dump(mode="json") if self.tokens else None,
+            "client_info": self.client_info.model_dump(mode="json") if self.client_info else None,
+        }
+        tmp = self.path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+        os.replace(tmp, self.path)
 
     async def get_tokens(self) -> OAuthToken | None:
+        await self._load()
         return self.tokens
 
     async def set_tokens(self, tokens: OAuthToken) -> None:
         self.tokens = tokens
+        await self._save()
 
     async def get_client_info(self) -> OAuthClientInformationFull | None:
+        await self._load()
         return self.client_info
 
     async def set_client_info(self, client_info: OAuthClientInformationFull) -> None:
         self.client_info = client_info
-
-
-@dataclass
-class _PendingOAuth:
-    chat_id: int
-    future: asyncio.Future[AuthorizationCodeResult]
-    state: str | None = None
-    on_url: Callable[[str], Awaitable[None]] | None = None
+        await self._save()
 
 
 _storage = InMemoryTokenStorage()
@@ -146,9 +174,10 @@ async def _run_oauth(pending: _PendingOAuth) -> None:
         if pending.on_url:
             await pending.on_url(public_redirect_uri() + "?tcbs=connected")
     except Exception as exc:
-        logger.exception("TCBS OAuth failed for Telegram chat %s", pending.chat_id)
+        logger.exception("TCBS OAuth failed for Telegram chat %s: %s", pending.chat_id, exc)
         if pending.on_url:
-            await pending.on_url(public_redirect_uri() + f"?tcbs=error&message={str(exc)[:120]}")
+            safe = str(exc).replace("\n", " ")[:240]
+            await pending.on_url(public_redirect_uri() + f"?tcbs=error&message={safe}")
     finally:
         if pending.state:
             _pending_by_state.pop(pending.state, None)

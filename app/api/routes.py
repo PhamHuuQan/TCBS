@@ -10,6 +10,7 @@ from app.rules.manager import get_business_rules, save_business_rules
 from app.llm.generator import reset_llm, get_backend
 from app.llm.settings import save_model_settings, normalize_model_path, DEFAULT_MODEL_PATH, DEFAULT_MODEL_TYPE
 from app.tcbs.client import TCBSMCPClient, TCBSMCPError
+from app.tcbs.oauth import connect_and_list_tools, receive_callback, connected, disconnect
 
 logger = logging.getLogger(__name__)
 

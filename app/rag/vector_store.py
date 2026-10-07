@@ -10,7 +10,8 @@ _chroma_client = None
 def get_chroma_client():
     global _chroma_client
     if _chroma_client is None:
-        db_path = os.getenv("VECTOR_DB_PATH", "./data/vector_db")
+        default_path = "/data/vector_db" if os.path.isdir("/data") else "./data/vector_db"
+        db_path = os.getenv("VECTOR_DB_PATH", default_path)
         os.makedirs(db_path, exist_ok=True)
         _chroma_client = chromadb.PersistentClient(path=db_path)
         logger.info(f"ChromaDB initialized at: {db_path}")

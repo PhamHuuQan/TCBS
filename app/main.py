@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.api.routes import router
+from app.telegram import router as telegram_router, telegram_startup, telegram_shutdown
 from dotenv import load_dotenv
 import logging
 
@@ -18,6 +19,7 @@ app = FastAPI(
 
 # Include API routes under /api or root
 app.include_router(router)
+app.include_router(telegram_router)
 
 # Mount static folder
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -34,5 +36,11 @@ def serve_home():
 @app.on_event("startup")
 async def startup_event():
     logger = logging.getLogger(__name__)
-    logger.info("TDnook Paper UI started at http://localhost:8000")
+    logger.info("TDnook / TCBS Quant service starting")
+    await telegram_startup()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await telegram_shutdown()
 

@@ -11,6 +11,9 @@ from app.llm.generator import reset_llm, get_backend
 from app.llm.settings import save_model_settings, normalize_model_path, DEFAULT_MODEL_PATH, DEFAULT_MODEL_TYPE
 from app.tcbs.client import TCBSMCPClient, TCBSMCPError
 from app.tcbs.oauth import connect_and_list_tools, receive_callback, connected, disconnect
+from app.quant.analyzer import analyze_ticker
+from app.quant.compare import compare_tickers
+from app.quant.screener import screen_tickers
 
 logger = logging.getLogger(__name__)
 
@@ -327,3 +330,47 @@ async def query_documents(request: QueryRequest):
     except Exception as e:
         logger.error(f"Error querying documents: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- QUANT ENGINE ENDPOINTS ---
+@router.get("/quant/analyze/{ticker}")
+def quant_analyze(ticker: str):
+    """Run the deterministic TCBS quantitative analysis for one ticker."""
+    ticker = ticker.strip().upper()
+    if not ticker.isalpha() or not 3 <= len(ticker) <= 4:
+        raise HTTPException(status_code=400, detail="Ticker không hợp lệ.")
+    try:
+        return analyze_ticker(ticker)
+    except Exception as exc:
+        logger.error("Quant analysis failed for %s: %s", ticker, exc, exc_info=True)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.post("/quant/compare")
+def quant_compare(payload: dict = Body(...)):
+    """Compare several tickers using the same deterministic scoring engine."""
+    tickers = payload.get("tickers", [])
+    if not isinstance(tickers, list) or not tickers:
+        raise HTTPException(status_code=400, detail="Body phải có tickers: [\"VCB\", \"BID\"]")
+    if len(tickers) > 20:
+        raise HTTPException(status_code=400, detail="Tối đa 20 mã mỗi lần so sánh.")
+    try:
+        return compare_tickers([str(x) for x in tickers])
+    except Exception as exc:
+        logger.error("Quant comparison failed: %s", exc, exc_info=True)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.post("/quant/screen")
+def quant_screen(payload: dict = Body(...)):
+    """Rank a supplied universe of tickers. No universe is silently invented."""
+    tickers = payload.get("tickers", [])
+    if not isinstance(tickers, list) or not tickers:
+        raise HTTPException(status_code=400, detail="Body phải có tickers: [\"VCB\", \"BID\", ...]")
+    if len(tickers) > 50:
+        raise HTTPException(status_code=400, detail="Tối đa 50 mã mỗi lần screening.")
+    try:
+        return screen_tickers([str(x) for x in tickers])
+    except Exception as exc:
+        logger.error("Quant screening failed: %s", exc, exc_info=True)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc

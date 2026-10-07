@@ -109,7 +109,8 @@ def tcbs_tools():
     if not client.configured:
         raise HTTPException(status_code=401, detail="TCBS_MCP_ACCESS_TOKEN is not configured.")
     try:
-        return {"tools": client.list_tools(), "count": len(client.list_tools())}
+        tools = client.list_tools()
+        return {"tools": tools, "count": len(tools)}
     except TCBSMCPError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 

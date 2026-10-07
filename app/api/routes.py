@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Ensure the upload directory exists
-UPLOAD_DIR = os.path.join(os.getcwd(), "data", "documents")
+UPLOAD_DIR = os.getenv("DOCUMENT_STORAGE_DIR", "/data/documents" if os.path.isdir("/data") else os.path.join(os.getcwd(), "data", "documents"))
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 SUPPORTED_EXTENSIONS = {

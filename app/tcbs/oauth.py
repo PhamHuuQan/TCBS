@@ -103,7 +103,7 @@ async def start_telegram_oauth(
     on_url: Callable[[str], Awaitable[None]],
 ) -> None:
     if connected():
-        await on_url(public_redirect_uri())
+        await on_url(public_redirect_uri() + "?tcbs=connected")
         return
     async with _lock:
         existing = _pending.get(chat_id)

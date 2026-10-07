@@ -23,7 +23,7 @@ async def telegram_webhook(
     expected = telegram_webhook_secret()
     if secret != expected:
         raise HTTPException(status_code=404, detail="Not found")
-    if x_telegram_bot_api_secret_token and x_telegram_bot_api_secret_token != expected:
+    if x_telegram_bot_api_secret_token != expected:
         raise HTTPException(status_code=403, detail="Invalid webhook secret")
     update = await request.json()
     await handle_telegram_update(update)

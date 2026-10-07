@@ -49,7 +49,10 @@ _tasks: set[asyncio.Task] = set()
 
 
 def _token() -> str:
-    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    token = (
+        os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+        or os.getenv("TELEGRAM_TOKEN", "").strip()
+    )
     if not token:
         raise RuntimeError("Thiếu TELEGRAM_BOT_TOKEN.")
     return token

@@ -131,6 +131,21 @@ async def tcbs_connect():
         raise HTTPException(status_code=502, detail=f"TCBS connection failed: {exc}") from exc
 
 
+@router.get("/tcbs/oauth/client-metadata.json")
+def tcbs_oauth_client_metadata():
+    domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
+    if not domain:
+        raise HTTPException(status_code=503, detail="Railway public domain is not configured.")
+    callback = f"https://{domain}/tcbs/oauth/callback"
+    return {
+        "client_id": f"https://{domain}/tcbs/oauth/client-metadata.json",
+        "client_name": "TCBS Quant Assistant",
+        "redirect_uris": [callback],
+        "grant_types": ["authorization_code", "refresh_token"],
+        "response_types": ["code"],
+        "token_endpoint_auth_method": "none",
+    }
+
 @router.get("/tcbs/oauth/callback")
 async def tcbs_oauth_callback(
     code: str | None = None,
